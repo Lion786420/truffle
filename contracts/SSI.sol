@@ -7,13 +7,11 @@ contract SSI {
     struct Document {
         uint256 id;
         string user_did;
-        string did;
         string name;
-        string fathersName;
+        string dob;
         string email;
         string phone;
         string permanentAddress;
-        string signature;
         bool status;
     }
 
@@ -21,9 +19,8 @@ contract SSI {
 
     function addDocument(
         string memory user_did,
-        string memory did,
         string memory name,
-        string memory fathersName,
+        string memory dob,
         string memory email,
         string memory phone,
         string memory permanentAddress
@@ -31,13 +28,11 @@ contract SSI {
         documents[docCount] = Document(
             docCount,
             user_did,
-            did,
             name,
-            fathersName,
+            dob,
             email,
             phone,
             permanentAddress,
-            "",
             false
         );
         docCount++;
@@ -52,9 +47,8 @@ contract SSI {
         view
         returns (
             string memory user_did,
-            string memory did,
             string memory name,
-            string memory fathersName,
+            string memory dob,
             string memory email,
             string memory phone,
             string memory permanentAddress,
@@ -64,9 +58,8 @@ contract SSI {
         Document memory doc = documents[id];
         return (
             doc.user_did,
-            doc.did,
             doc.name,
-            doc.fathersName,
+            doc.dob,
             doc.email,
             doc.phone,
             doc.permanentAddress,
@@ -77,44 +70,21 @@ contract SSI {
     function verifyDocument(
         uint256 id,
         string memory user_did,
-        string memory did,
         string memory name,
-        string memory fathersName,
+        string memory dob,
         string memory email,
         string memory phone,
-        string memory permanentAddress,
-        bytes memory signature
+        string memory permanentAddress
     ) public {
         require(id < docCount, "Invalid document ID");
         Document storage doc = documents[id];
-
-        bytes32 messageHash = keccak256(
-            abi.encodePacked(
-                user_did,
-                did,
-                name,
-                fathersName,
-                email,
-                phone,
-                permanentAddress
-            )
-        );
-
-        address recoveredAddress = recoverSigner(messageHash, signature);
-
-        require(
-            recoveredAddress == bytesToAddress(bytes(user_did)),
-            "Signature verification failed"
-        );
-
+        
         doc.user_did = user_did;
-        doc.did = did;
         doc.name = name;
-        doc.fathersName = fathersName;
+        doc.dob = dob;
         doc.email = email;
         doc.phone = phone;
         doc.permanentAddress = permanentAddress;
-        doc.signature = string(signature);
         doc.status = true;
     }
 
@@ -143,41 +113,5 @@ contract SSI {
             result[i] = indices[i];
         }
         return result;
-    }
-
-    function recoverSigner(bytes32 messageHash, bytes memory signature)
-        internal
-        pure
-        returns (address)
-    {
-        require(signature.length == 65, "Invalid signature length");
-
-        bytes32 r;
-        bytes32 s;
-        uint8 v;
-
-        assembly {
-            r := mload(add(signature, 32))
-            s := mload(add(signature, 64))
-            v := byte(0, mload(add(signature, 96)))
-        }
-
-        if (v < 27) {
-            v += 27;
-        }
-
-        require(v == 27 || v == 28, "Invalid signature recovery id");
-
-        return ecrecover(messageHash, v, r, s);
-    }
-
-    function bytesToAddress(bytes memory data)
-        internal
-        pure
-        returns (address addr)
-    {
-        assembly {
-            addr := mload(add(data, 20))
-        }
     }
 }
